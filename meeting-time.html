@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <title>Global Meeting Time</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow-x: hidden; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 12px;
+            color: #fff;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            margin-bottom: 4px;
+            font-size: 16px;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        /* 语言选择器 */
+        .lang-selector {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .lang-selector select {
+            padding: 4px 20px 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 11px;
+            cursor: pointer;
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+        .lang-selector select option { background: #1a1a2e; }
+        
+        .base-time {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .base-time h2 { font-size: 13px; margin-bottom: 8px; color: #00d9ff; }
+        .time-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+        .selector-group { display: flex; flex-direction: column; gap: 2px; }
+        .selector-group label { font-size: 9px; color: #888; }
+        select {
+            padding: 5px 16px 5px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 42px;
+            height: 26px;
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+        select:focus { outline: none; border-color: #00d9ff; }
+        select option { background: #1a1a2e; color: #fff; font-size: 11px; }
+        
+        /* 基准时间的下拉框稍大一点 */
+        .base-time select {
+            font-size: 13px;
+            padding: 7px 20px 7px 6px;
+            height: 30px;
+            min-width: 46px;
+        }
+        
+        .time-zones { display: flex; flex-direction: column; gap: 5px; }
+        .timezone-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 7px;
+            padding: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .timezone-header { min-width: 22px; text-align: center; }
+        .timezone-header h3 { font-size: 10px; color: #00ff88; }
+        .timezone-selector { min-width: 58px; }
+        .timezone-selector select {
+            width: 100%;
+            font-size: 10px;
+            padding: 4px 14px 4px 4px;
+            background: rgba(255,255,255,0.15);
+            height: 22px;
+        }
+        .result-time {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 7px;
+            border-radius: 4px;
+            flex: 1;
+            justify-content: space-between;
+        }
+        .result-time .date { font-size: 11px; font-weight: 600; color: #fff; }
+        .result-time .time { font-size: 14px; font-weight: 700; color: #00d9ff; }
+        .result-time .day { font-size: 9px; color: #888; min-width: 22px; }
+        .timezone-label { font-size: 8px; color: #666; min-width: 38px; text-align: right; }
+        .preset-btn {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            color: #1a1a2e;
+            font-weight: 600;
+            font-size: 10px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+        .install-hint {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            margin-top: 12px;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Global Meeting Time Planning Tool</h1>
+        <div class="subtitle">by SlashBro</div>
+        
+        <!-- 语言选择 -->
+        <div class="lang-selector">
+            <select id="language" onchange="changeLanguage()">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="pt">Português</option>
+            </select>
+        </div>
+        
+        <div class="base-time">
+            <h2 id="baseTimeLabel">📍 Base Time</h2>
+            <div class="time-selector">
+                <div class="selector-group"><label id="yearLabel">Year</label><select id="year"></select></div>
+                <div class="selector-group"><label id="monthLabel">Month</label><select id="month"></select></div>
+                <div class="selector-group"><label id="dayLabel">Day</label><select id="day"></select></div>
+                <div class="selector-group"><label id="hourLabel">Hour</label><select id="hour"></select></div>
+                <div class="selector-group"><label id="minuteLabel">Min</label><select id="minute"></select></div>
+                <div class="selector-group"><label id="tzLabel">Zone</label><select id="baseTimezone"></select></div>
+            </div>
+        </div>
+        
+        <button class="preset-btn" onclick="loadPresets()" id="presetBtn">📋 Presets</button>
+        <div class="time-zones" id="timeZones"></div>
+        <div class="install-hint" id="installHint" style="display:none">
+            👆 Tap Share → Add to Home Screen
+        </div>
+    </div>
+    <script>
+        // 时区数据 - 罗克福德只在中文显示
+        const timezones = [
+            { id: 'Asia/Shanghai', name_zh: '中国', name_en: 'China', name_es: 'China', name_pt: 'China' },
+            { id: 'America/Chicago', name_zh: '罗克福德', name_en: 'Rockford', name_es: 'Rockford', name_pt: 'Rockford' },
+            { id: 'America/Los_Angeles', name_zh: '洛杉矶', name_en: 'Los Angeles', name_es: 'Los Ángeles', name_pt: 'Los Angeles' },
+            { id: 'America/Los_Angeles', name_zh: '西雅图', name_en: 'Seattle', name_es: 'Seattle', name_pt: 'Seattle' },
+            { id: 'America/Chicago', name_zh: '休斯顿', name_en: 'Houston', name_es: 'Houston', name_pt: 'Houston' },
+            { id: 'America/Monterrey', name_zh: '蒙特雷', name_en: 'Monterrey', name_es: 'Monterrey', name_pt: 'Monterrey' },
+            { id: 'Europe/Madrid', name_zh: '马德里', name_en: 'Madrid', name_es: 'Madrid', name_pt: 'Madri' },
+            { id: 'America/Sao_Paulo', name_zh: '圣保罗', name_en: 'São Paulo', name_es: 'São Paulo', name_pt: 'São Paulo' }
+        ];
+
+        // 语言翻译
+        const i18n = {
+            zh: {
+                baseTime: '📍 基准时间',
+                year: '年', month: '月', day: '日', hour: '时', minute: '分', timezone: '时区',
+                preset: '📋 常用时区',
+                installHint: '👆 点击 Safari 分享按钮 → 添加到主屏幕'
+            },
+            en: {
+                baseTime: '📍 Base Time',
+                year: 'Year', month: 'Month', day: 'Day', hour: 'Hour', minute: 'Min', timezone: 'Zone',
+                preset: '📋 Presets',
+                installHint: '👆 Tap Share → Add to Home Screen'
+            },
+            es: {
+                baseTime: '📍 Hora Base',
+                year: 'Año', month: 'Mes', day: 'Día', hour: 'Hora', minute: 'Min', timezone: 'Zona',
+                preset: '📋 Presets',
+                installHint: '👆 Toca Compartir → Añadir a pantalla de inicio'
+            },
+            pt: {
+                baseTime: '📍 Hora Base',
+                year: 'Ano', month: 'Mês', day: 'Dia', hour: 'Hora', minute: 'Min', timezone: 'Zona',
+                preset: '📋 Presets',
+                installHint: '👆 Toque em Compartilhar → Adicionar à tela inicial'
+            }
+        };
+
+        let currentLang = 'en';
+
+        function t(key) {
+            return i18n[currentLang][key] || key;
+        }
+
+        function getTimezoneName(tz) {
+            return tz['name_' + currentLang] || tz.name_zh;
+        }
+
+        function getTimezoneOffset(date, timezone) {
+            const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+            const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+            return (tzDate - utcDate) / (60 * 60 * 1000);
+        }
+        function formatTimezoneOffset(offset) { return 'UTC' + (offset >= 0 ? '+' : '') + offset; }
+
+        function changeLanguage() {
+            currentLang = document.getElementById('language').value;
+            updateLabels();
+            updateTimezoneOptions();
+            updateAll();
+        }
+
+        function updateLabels() {
+            document.getElementById('baseTimeLabel').textContent = t('baseTime');
+            document.getElementById('yearLabel').textContent = t('year');
+            document.getElementById('monthLabel').textContent = t('month');
+            document.getElementById('dayLabel').textContent = t('day');
+            document.getElementById('hourLabel').textContent = t('hour');
+            document.getElementById('minuteLabel').textContent = t('minute');
+            document.getElementById('tzLabel').textContent = t('timezone');
+            document.getElementById('presetBtn').textContent = t('preset');
+            document.getElementById('installHint').textContent = t('installHint');
+        }
+
+        function updateTimezoneOptions() {
+            // 更新基准时区
+            const baseTz = document.getElementById('baseTimezone');
+            const currentVal = baseTz.value;
+            baseTz.innerHTML = '';
+            timezones.forEach(tz => {
+                baseTz.add(new Option(getTimezoneName(tz), tz.id));
+            });
+            if (currentVal) baseTz.value = currentVal;
+
+            // 更新时区卡片
+            document.querySelectorAll('.tz-select').forEach((select, i) => {
+                const currentVal = select.value;
+                select.innerHTML = '';
+                timezones.forEach(tz => {
+                    select.add(new Option(getTimezoneName(tz), tz.id));
+                });
+                if (currentVal) select.value = currentVal;
+            });
+        }
+
+        function init() {
+            const now = new Date();
+            const yearSelect = document.getElementById('year');
+            for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 2; y++) yearSelect.add(new Option(y, y));
+            yearSelect.value = now.getFullYear();
+            const monthSelect = document.getElementById('month');
+            for (let m = 1; m <= 12; m++) monthSelect.add(new Option(m, m));
+            monthSelect.value = now.getMonth() + 1;
+            updateDays();
+            const hourSelect = document.getElementById('hour');
+            for (let h = 0; h < 24; h++) hourSelect.add(new Option(h.toString().padStart(2, '0'), h));
+            hourSelect.value = now.getHours();
+            const minuteSelect = document.getElementById('minute');
+            for (let m = 0; m < 60; m += 15) minuteSelect.add(new Option(m.toString().padStart(2, '0'), m));
+            minuteSelect.value = 0;
+            
+            // 初始化时区选项
+            updateTimezoneOptions();
+            
+            const tzSelect = document.getElementById('baseTimezone');
+            tzSelect.value = 'Asia/Shanghai';
+            
+            initTimezoneCards();
+            
+            yearSelect.addEventListener('change', updateAll);
+            monthSelect.addEventListener('change', updateDays);
+            document.getElementById('day').addEventListener('change', updateAll);
+            document.getElementById('hour').addEventListener('change', updateAll);
+            document.getElementById('minute').addEventListener('change', updateAll);
+            document.getElementById('baseTimezone').addEventListener('change', updateAll);
+            
+            // 默认英文
+            document.getElementById('language').value = 'en';
+            currentLang = 'en';
+            updateLabels();
+            updateAll();
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) document.getElementById('installHint').style.display = 'block';
+        }
+        
+        function updateDays() {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const daySelect = document.getElementById('day');
+            const currentDay = daySelect.value;
+            daySelect.innerHTML = '';
+            const days = new Date(year, month, 0).getDate();
+            for (let d = 1; d <= days; d++) daySelect.add(new Option(d, d));
+            daySelect.value = (currentDay && parseInt(currentDay) <= days) ? currentDay : days;
+        }
+        
+        function initTimezoneCards() {
+            const container = document.getElementById('timeZones');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const card = document.createElement('div');
+                card.className = 'timezone-card';
+                card.innerHTML = `
+                    <div class="timezone-header"><h3>${i + 1}</h3></div>
+                    <div class="timezone-selector"><select class="tz-select" data-index="${i}">${timezones.map(tz => `<option value="${tz.id}">${getTimezoneName(tz)}</option>`).join('')}</select></div>
+                    <div class="result-time"><span class="date">-</span><span class="time">-</span><span class="day">-</span><span class="timezone-label">-</span></div>
+                `;
+                container.appendChild(card);
+            }
+            document.querySelectorAll('.tz-select').forEach(select => select.addEventListener('change', updateAll));
+            loadPresets();
+        }
+        
+        function loadPresets() {
+            const presets = ['America/Los_Angeles', 'America/Chicago', 'America/Monterrey', 'Europe/Madrid', 'Asia/Shanghai'];
+            document.querySelectorAll('.tz-select').forEach((select, i) => { if (presets[i]) select.value = presets[i]; });
+            updateAll();
+        }
+        
+        function formatDateTime(date) {
+            const days_zh = ['日', '一', '二', '三', '四', '五', '六'];
+            const days_en = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const days_es = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const days_pt = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            
+            let days;
+            if (currentLang === 'zh') days = days_zh;
+            else if (currentLang === 'en') days = days_en;
+            else if (currentLang === 'es') days = days_es;
+            else days = days_pt;
+            
+            return { 
+                date: (date.getMonth() + 1) + '/' + date.getDate(), 
+                time: date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0'), 
+                day: days[date.getDay()] 
+            };
+        }
+        
+        function updateAll() {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const day = parseInt(document.getElementById('day').value);
+            const hour = parseInt(document.getElementById('hour').value);
+            const minute = parseInt(document.getElementById('minute').value);
+            const baseTz = document.getElementById('baseTimezone').value;
+            const userDate = new Date(year, month - 1, day, hour, minute);
+            const baseOffset = getTimezoneOffset(userDate, baseTz);
+            const utcDate = new Date(userDate.getTime() - baseOffset * 60 * 60 * 1000);
+            document.querySelectorAll('.timezone-card').forEach(card => {
+                const tzSelect = card.querySelector('.tz-select');
+                const tzId = tzSelect.value;
+                const tzOffset = getTimezoneOffset(utcDate, tzId);
+                const tzName = getTimezoneName(timezones.find(t => t.id === tzId));
+                const localDate = new Date(utcDate.getTime() + tzOffset * 60 * 60 * 1000);
+                const formatted = formatDateTime(localDate);
+                const resultTime = card.querySelector('.result-time');
+                resultTime.querySelector('.date').textContent = formatted.date;
+                resultTime.querySelector('.time').textContent = formatted.time;
+                resultTime.querySelector('.day').textContent = formatted.day;
+                resultTime.querySelector('.timezone-label').textContent = formatTimezoneOffset(tzOffset);
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>
